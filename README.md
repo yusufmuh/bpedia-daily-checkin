@@ -27,15 +27,17 @@ Engine tidak punya efek samping: host yang menyimpan `lastClaimDay`, `streak`, d
 
 ## Pasang
 
-Git (aplikasi di luar workspace; kunci `ref` ke commit tertentu untuk build rilis):
+Git (aplikasi di luar workspace). Kunci `ref` ke tag rilis, jangan ke `main` (di GitHub `main` bisa tertinggal dari API yang dijelaskan di sini):
 
 ```yaml
 dependencies:
   daily_checkin:
     git:
       url: https://github.com/yusufmuh/bpedia-daily-checkin.git
-      ref: main
+      ref: v2.0.0
 ```
+
+Tag `v2.0.0` tersedia di GitHub. Kunci `ref` ke tag rilis (atau hash commit), jangan ke `main`.
 
 Workspace lokal (repo bersebelahan dengan `bpedia-kelopak-hub`):
 
@@ -133,7 +135,7 @@ Widget hanya membaca `Theme.of(context)`; tidak ada warna tetap.
 
 - Tiap slot jejak punya label sendiri: "Hari 4, hari ini, belum check-in", "Hari 7, belum, bonus 3 Kelopak".
 - Progres: label "Progres produk gratis", nilai "12 dari 30 hari".
-- Teks 200% di layar 360 dp tanpa overflow.
+- Teks 200% di layar 360 dp tanpa overflow dan tanpa diperkecil: label "Hari N" boleh membungkus, dan jejak 7 hari pecah menjadi baris (4 + 3) bila kata tidak muat sejajar.
 - Slot hari ini berdenyut 1,0 sampai 1,06 (1,2 dtk) dan berhenti bila `MediaQuery.disableAnimationsOf(context)` true.
 
 Catatan test host: denyut berjalan terus selama slot hari ini tampil, jadi `pumpAndSettle()` akan timeout. Bungkus dengan `MediaQuery(data: ...copyWith(disableAnimations: true))` atau pakai `pump(Duration)`.

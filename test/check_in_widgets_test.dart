@@ -1,5 +1,6 @@
 import 'package:daily_checkin/daily_checkin.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/brand_theme.dart';
@@ -165,25 +166,75 @@ void main() {
       expect(find.byIcon(Icons.card_giftcard), findsOneWidget);
     });
 
-    testWidgets('label "Hari N" muat satu baris di slot sempit', (
+    testWidgets('label "Hari N" tidak diperkecil di slot sempit', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
         hostApp(
-          Center(
-            child: SizedBox(
-              width: 220,
-              child: _track(filled: 4, claimedToday: false),
+          SingleChildScrollView(
+            child: Center(
+              child: SizedBox(
+                width: 220,
+                child: _track(filled: 4, claimedToday: false),
+              ),
             ),
           ),
           textScale: 2,
         ),
       );
       expect(tester.takeException(), isNull);
-      const double slotWidth = (220 - 6 * 6) / 7;
       for (int day = 1; day <= 7; day++) {
-        final Rect label = tester.getRect(find.text('Hari $day'));
-        expect(label.width, lessThanOrEqualTo(slotWidth + 0.01));
+        final Finder label = find.text('Hari $day');
+        expect(
+          tester.getRect(label).height,
+          closeTo(tester.getSize(label).height, 0.01),
+          reason: 'Hari $day is painted at its laid-out size',
+        );
+        expect(tester.getRect(label).width, lessThanOrEqualTo(220));
+      }
+    });
+
+    testWidgets('360 dp, teks 200%: label dan "+3" tetap 2x, tanpa overflow', (
+      WidgetTester tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(360, 740);
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        hostApp(
+          SingleChildScrollView(child: _track(filled: 6, claimedToday: false)),
+          textScale: 2,
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      for (int day = 1; day <= 7; day++) {
+        final Finder label = find.text('Hari $day');
+        final RenderParagraph paragraph = tester.renderObject(label);
+        final double fontSize = paragraph.text.style!.fontSize!;
+        expect(paragraph.textScaler.scale(fontSize), 2 * fontSize);
+        final Rect painted = tester.getRect(label);
+        expect(painted.height, closeTo(tester.getSize(label).height, 0.01));
+        expect(painted.height, greaterThanOrEqualTo(2 * fontSize));
+      }
+      final Finder pill = find.text('+3');
+      final RenderParagraph pillText = tester.renderObject(pill);
+      expect(pillText.textScaler, const TextScaler.linear(2));
+      expect(
+        tester.getRect(pill).height,
+        closeTo(tester.getSize(pill).height, 0.01),
+      );
+    });
+
+    testWidgets('teks 100% di 412 dp: tujuh slot dalam satu baris', (
+      WidgetTester tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(412, 740);
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(hostApp(_track(filled: 2, claimedToday: false)));
+      final double top = tester.getTopLeft(find.text('Hari 1')).dy;
+      for (int day = 2; day <= 7; day++) {
+        expect(tester.getTopLeft(find.text('Hari $day')).dy, top);
       }
     });
   });
@@ -428,27 +479,31 @@ void main() {
             tester.view.devicePixelRatio = 1;
             tester.view.physicalSize = Size(width, 740);
             addTearDown(tester.view.reset);
+            // Hosts show the track in a scrolling page; at 200% the week
+            // breaks into rows, so the column is taller than one screen.
             await tester.pumpWidget(
               hostApp(
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  spacing: 16,
-                  children: <Widget>[
-                    _track(
-                      filled: state.$1,
-                      claimedToday: state.$2,
-                      bonusIcon: const Icon(Icons.card_giftcard),
-                    ),
-                    CheckInMonthProgress(
-                      day: state.$3,
-                      rewardImage: const Icon(Icons.redeem),
-                    ),
-                    CheckInClaimButton(
-                      state: state.$4,
-                      onPressed: () {},
-                      claimedHint: _hint,
-                    ),
-                  ],
+                SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: 16,
+                    children: <Widget>[
+                      _track(
+                        filled: state.$1,
+                        claimedToday: state.$2,
+                        bonusIcon: const Icon(Icons.card_giftcard),
+                      ),
+                      CheckInMonthProgress(
+                        day: state.$3,
+                        rewardImage: const Icon(Icons.redeem),
+                      ),
+                      CheckInClaimButton(
+                        state: state.$4,
+                        onPressed: () {},
+                        claimedHint: _hint,
+                      ),
+                    ],
+                  ),
                 ),
                 textScale: 2,
                 brightness: brightness,

@@ -114,7 +114,7 @@ Lembar hasil yang bisa ditutup: "+1 Kelopak" / "+1 Kelopak + bonus 3 Kelopak" / 
 
 - Setiap slot satu node semantics dengan label lengkap; teks "Hari N" tidak dibacakan dua kali.
 - Target sentuh: tombol min. 52 dp; jejak dan progres tidak bisa diketuk.
-- Teks 200% pada layar 360 × 740 dp tanpa overflow (label hari mengecil, pil "+3" dibatasi 130%, teks lain membungkus).
+- Teks 200% pada layar 360 × 740 dp tanpa overflow, dan tanpa mengecilkan teks: label "Hari N" dan pil "+3" selalu memakai ukuran teks pilihan pengguna (tanpa FittedBox atau batas skala). Label boleh membungkus ("Hari" di atas "7"); bila kata tidak muat di tujuh slot sejajar, jejak dipecah menjadi baris (4 + 3, atau lebih sempit).
 - Status selalu teks + ikon, bukan warna saja (lencana centang, kuncup vs tulip mekar, label).
 - Kontras: label hari ini dan teks 30/30 memakai `secondary` (berry-700, 6,4:1 di pearl), bukan pink-600.
 - Kurangi gerakan: denyut slot hari ini berhenti dan ubin kembali 100%.
@@ -191,7 +191,7 @@ Widget hanya memakai `Theme.of(context)` (ColorScheme + TextTheme). Gambar datan
 | AT-10 | Tombol | `ready` aktif + 1 kali panggilan; `claimed` nonaktif + petunjuk di bawah; min. 52 dp, lebar penuh, tanpa spinner | widget |
 | AT-11 | Progres bulanan | label/nilai semantics, batas 0..30, gambar hadiah 28 dp atau `Icons.redeem` | widget |
 | AT-12 | Denyut slot hari ini | skala 1,0 sampai 1,06; diam bila animasi dimatikan; tidak ada denyut setelah check-in | widget |
-| AT-13 | Teks 200% di 360 × 740 dan 320 × 740, tema terang & gelap | tanpa overflow/exception | widget |
+| AT-13 | Teks 200% di 360 × 740 dan 320 × 740, tema terang & gelap | tanpa overflow/exception; label "Hari N" dan "+3" digambar pada ukuran 2x (tidak diperkecil) | widget |
 | AT-14 | Paritas server | `php -l` bersih, swa-uji 54 cek lulus | `php server/checkin.php` |
 
 Definisi selesai: `flutter analyze` → "No issues found!", `flutter test` hijau, `php -l server/checkin.php` bersih.
