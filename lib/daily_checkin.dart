@@ -42,7 +42,7 @@ class DailyCheckInView extends StatelessWidget {
       const Divider(height: 38),
       Text('Produk gratis', style: Theme.of(context).textTheme.titleMedium),
       const SizedBox(height: 8),
-      LinearProgressIndicator(value: monthly / 30, semanticsLabel: 'Progres produk gratis', semanticsValue: '$monthly dari 30 hari'),
+      LinearProgressIndicator(value: monthly / 30, semanticsLabel: 'Progres produk gratis: $monthly dari 30 hari'),
       const SizedBox(height: 6),
       Text('$monthly dari 30 hari berturut-turut · $products hak produk'),
     ]);

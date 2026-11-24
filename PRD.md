@@ -1,34 +1,76 @@
-# PRD 01 · Check-in Harian
+# PRD 01 · Check-in Harian (Bpedia Kelopak)
 
-**Versi 0.1 · 24 November 2026 · Pemilik keputusan bisnis: tim produk Bpedia**
+**Versi 1.0 (Final & Resmi) · 24 November 2026 · Owner: Muhammad Yusuf (Bpedia)**  
+Dokumen spesifikasi teknis dan aturan bisnis modul Check-in Harian Bpedia Kelopak.  
+Induk acuan: `bpedia-kelopak-hub/PRD.md`.
 
-## Tujuan dan perjalanan pengguna
-Pembeli yang membuka Bpedia dapat mengambil 1 Kelopak setiap hari. Ia melihat manfaat hari ini, kemajuan minggu berjalan, dan jarak menuju produk gratis sebelum menyentuh tombol. Setelah klaim berhasil, tampilkan tanggal WIB, rincian tambahan harian dan bonus, serta saldo hasil transaksi. Pengunjung yang belum masuk kembali ke layar yang sama sesudah login.
+---
 
-## Ekonomi dan kalender
-| Peristiwa | Perubahan | Contoh tanpa transaksi lain |
-|---|---|---|
-| Hari pertama | +1 Kelopak | Saldo 1, setara Rp100 |
-| Hari ketujuh berturut-turut | +1 harian dan +3 bonus | Saldo 10, setara Rp1.000 |
-| Hari ke-10 | +1 harian | Saldo 13 |
-| Hari ke-14 | +1 harian dan +3 bonus | Saldo 20 |
-| Hari ke-30 | +1 harian dan satu hak produk gratis | Saldo 42 dan satu hak produk |
-| Ada satu tanggal terlewat | Mulai rentetan baru pada klaim berikutnya | Saldo dan hak terdahulu tetap ada |
+## 1. Tujuan & Nilai bagi Pengguna
+Memberikan pembeli alasan untuk membuka aplikasi Bpedia setiap hari. Setiap hari pembeli dapat mengklaim **1 Kelopak** (= Rp100). Pengguna melihat riwayat jejak 7 hari, status hari ini, serta jarak kemajuan menuju hak produk gratis (30 hari).
 
-Kalender server Asia/Jakarta berganti pukul 00.00 WIB. Satu akun hanya bisa mengklaim satu kali per tanggal. Bulan ditafsirkan **30 tanggal berurutan** dan hadiah berulang saat kelipatan 30 sebagai asumsi desain. Contoh 30 hari mengandung empat bonus mingguan. Anggaran per rentetan 30 hari ialah Rp4.200 ekuivalen Kelopak ditambah biaya produk, penanganan, dan kemungkinan subsidi kirim. Operasional menetapkan SKU, ongkir, wilayah, kuota jaminan, dan jangka klaim sebelum promo dibuka.
+---
 
-## Tampilan dan pemulihan
-Tujuh penanda hari memiliki nomor dan status teks. Tampilkan tombol “Ambil 1 Kelopak” atau “Sudah check-in hari ini”. Layar dapat digulir saat teks diperbesar. Jika pengiriman klaim terputus, muat ulang bukti dari server sebelum mengizinkan percobaan berikutnya. Jika produk kosong setelah milestone tercapai, simpan hak sebagai menunggu pemenuhan dan beri kanal bantuan; operator harus bisa menelusuri ID hak. Hari yang telah diklaim dari iPhone juga harus terlihat di Android dan web.
+## 2. Aturan Ekonomi & Kalender
 
-## Kontrak transaksi produksi
-Server mengambil identitas dari sesi, menghitung tanggal dan mengunci baris akun. Satu transaksi menulis klaim unik (akun, tanggal WIB), entri ledger harian, entri bonus unik (akun, awal rentetan, milestone) dan hak produk bila memenuhi syarat. Kirim peristiwa pemenuhan memakai outbox setelah commit. Respons mengembalikan receipt, saldo integer, streak, tanggal terakhir, waktu klaim berikutnya, serta status produk. Idempotency key yang sama menghasilkan receipt yang sama. Konflik permintaan dengan key berbeda di hari yang sama mengembalikan status klaim yang tercatat.
+| Peristiwa | Perubahan Saldo | Nilai Rupiah | Keterangan |
+|---|---|---|---|
+| **Hari ke-1 s/d ke-6** | +1 Kelopak per hari | Rp100 per hari | Klaim harian normal |
+| **Hari ke-7 (Strike 1 Minggu)** | +1 harian & **+3 bonus** | +Rp400 hari ke-7 | **Total akumulasi 7 hari = 10 Kelopak = Rp1.000** |
+| **Hari ke-8 s/d ke-13** | +1 Kelopak per hari | Rp100 per hari | Melanjutkan siklus minggu kedua |
+| **Hari ke-14 (Strike 2 Minggu)**| +1 harian & **+3 bonus** | +Rp400 hari ke-14 | Bonus mingguan kedua |
+| **Hari ke-30 (Strike 1 Bulan)** | +1 harian & **1 Hak Produk Gratis** | +Rp100 & Produk | Hak klaim produk gratis diterbitkan ke akun |
+| **Terlewat 1 Hari (Bolong)** | Streak kembali ke Hari 1 | - | Saldo Kelopak dan hak produk terdahulu **tetap aman** |
 
-## Uji penerimaan
-1. Pada tengah malam WIB dua klaim yang mengapit pergantian tanggal bisa sah; perbedaan jam/zonasi perangkat tidak mengubah keputusan server.
-2. Hari ke-7 memberi empat Kelopak pada transaksi hari itu; total tujuh hari sepuluh. Hari ke-10 memberi satu. Hari ke-14 mendapat bonus lagi.
-3. Dua perangkat yang mengirim bersamaan menghasilkan satu klaim dan satu perubahan saldo. Putus jaringan sesudah commit lalu coba ulang menghasilkan receipt pertama.
-4. Klaim setelah satu hari terlewat memulai hari pertama. Hari ke-30 menghasilkan satu hak produk, dan pembukaan ulang layar menampilkan hak yang sama.
-5. Pengguna dapat membaca status sudah diklaim, offline, dan stok tertunda dengan pembaca layar.
+### Ketentuan Waktu Server:
+- Kalender pergantian hari dihitung berdasarkan zona waktu **Asia/Jakarta (WIB, UTC+07:00)** pukul **00.00 WIB**.
+- Jam pada perangkat klien tidak mempengaruhi validasi server.
+- Satu akun hanya berhak melakukan satu kali klaim per tanggal kalender WIB.
 
-## Pengukuran dan keputusan
-Ukur akun yang mengklaim ÷ akun yang membuka fitur, proporsi yang mencapai hari 7/30 menurut kohor, biaya manfaat per akun, kegagalan tulis, dan selisih ledger. Product menyetujui definisi bulan dan kebijakan stok, operasional memastikan ketersediaan, backend memverifikasi transaksi, QA membuktikan alur lintas perangkat.
+---
+
+## 3. Komponen Antarmuka & Aksesibilitas
+1. **Jejak 7 Hari**: Baris 7 kartu penanda hari dengan ikon dan teks status yang jelas:
+   - Hari tercapai: Latar Blush Soft `#F6CFDA`, ikon centang `check_circle`.
+   - Hari ke-7: Ikon hadiah spesial `card_giftcard`.
+   - Hari belum tercapai: Latar Blush `#F9F0EF`, ikon bunga `spa_outlined`.
+2. **Tombol Klaim**:
+   - Belum klaim: Teks *"Ambil 1 Kelopak"*, tombol aktif (Berry `#982149`).
+   - Sudah klaim: Teks *"Sudah check-in hari ini"*, tombol nonaktif (`disabled`).
+3. **Progres Produk Bulanan**:
+   - `LinearProgressIndicator` persentase hari menuju target 30 hari.
+   - Keterangan teks: `X dari 30 hari berturut-turut · Y hak produk`.
+4. **Aksesibilitas**: Dibungkus `Semantics` lengkap untuk pembaca layar (TalkBack & VoiceOver).
+
+---
+
+## 4. Spesifikasi Kontrak Backend
+- Endpoint: `POST /v1/checkin/claim`
+- Header: `Authorization: Bearer <token>`, `Idempotency-Key: <uuid>`
+- Respons Sukses (200 OK):
+  ```json
+  {
+    "receiptId": "chk-12345",
+    "awarded": 1,
+    "bonus": 0,
+    "streak": 5,
+    "newBalance": 5,
+    "productEntitled": false
+  }
+  ```
+- Respons Duplikasi / Sudah Klaim (409 Conflict):
+  ```json
+  {
+    "error": "already_claimed",
+    "message": "Check-in hari ini sudah tercatat."
+  }
+  ```
+
+---
+
+## 5. Pengujian Mutu (Test Scenarios)
+1. Klaim pertama menghasilkan streak 1 dan saldo +1.
+2. Klaim pada hari ke-7 berturut-turut menghasilkan total +4 (1 harian + 3 bonus), saldo total 10.
+3. Klaim pada hari ke-30 berturut-turut menghasilkan hak produk gratis.
+4. Klaim yang terlewat 1 hari mereset streak menjadi 1 tanpa mengurangi saldo lama.
+5. Permintaan klaim ganda dengan idempotency key yang sama tidak menambah saldo dua kali.
