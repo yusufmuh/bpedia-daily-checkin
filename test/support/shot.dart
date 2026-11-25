@@ -45,7 +45,9 @@ Future<void> loadShotFonts(WidgetTester tester) async {
 Future<void> _loadFonts() async {
   final loaded = <String>{};
   try {
-    final manifest = json.decode(await rootBundle.loadString('FontManifest.json'));
+    final manifest = json.decode(
+      await rootBundle.loadString('FontManifest.json'),
+    );
     if (manifest is List<Object?>) {
       for (final entry in manifest) {
         if (entry is! Map<String, Object?>) continue;
@@ -67,15 +69,24 @@ Future<void> _loadFonts() async {
   }
   for (final family in const <String>['Poppins', 'Fraunces']) {
     if (loaded.contains(family)) continue;
-    for (final dir in const <String>['assets/fonts', 'example/assets/fonts', 'test/support/fonts']) {
+    for (final dir in const <String>[
+      'assets/fonts',
+      'example/assets/fonts',
+      'test/support/fonts',
+    ]) {
       final folder = Directory(dir);
       if (!folder.existsSync()) continue;
-      final files = folder
-          .listSync()
-          .whereType<File>()
-          .where((f) => f.uri.pathSegments.last.startsWith(family) && f.path.endsWith('.ttf'))
-          .toList()
-        ..sort((a, b) => a.path.compareTo(b.path));
+      final files =
+          folder
+              .listSync()
+              .whereType<File>()
+              .where(
+                (f) =>
+                    f.uri.pathSegments.last.startsWith(family) &&
+                    f.path.endsWith('.ttf'),
+              )
+              .toList()
+            ..sort((a, b) => a.path.compareTo(b.path));
       if (files.isEmpty) continue;
       final loader = FontLoader(family);
       for (final file in files) {
@@ -89,7 +100,9 @@ Future<void> _loadFonts() async {
   if (!loaded.contains('MaterialIcons')) {
     final root = Platform.environment['FLUTTER_ROOT'];
     if (root != null) {
-      final icons = File('$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
+      final icons = File(
+        '$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+      );
       if (icons.existsSync()) {
         final loader = FontLoader('MaterialIcons')
           ..addFont(icons.readAsBytes().then(ByteData.sublistView));
@@ -123,7 +136,9 @@ Future<void> pumpShot(
 /// Memberi waktu nyata supaya gambar aset dan lembar sprite selesai didekode.
 Future<void> settleImages(WidgetTester tester, {int rounds = 10}) async {
   for (var i = 0; i < rounds; i++) {
-    await tester.runAsync<void>(() => Future<void>.delayed(const Duration(milliseconds: 25)));
+    await tester.runAsync<void>(
+      () => Future<void>.delayed(const Duration(milliseconds: 25)),
+    );
     await tester.pump();
   }
 }
@@ -146,8 +161,12 @@ Future<ui.Image> _capture(WidgetTester tester, double pixelRatio) async {
   try {
     _repaintAll(tester);
     await tester.pump();
-    final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(_boundaryKey));
-    final image = await tester.runAsync<ui.Image>(() => boundary.toImage(pixelRatio: pixelRatio));
+    final boundary = tester.renderObject<RenderRepaintBoundary>(
+      find.byKey(_boundaryKey),
+    );
+    final image = await tester.runAsync<ui.Image>(
+      () => boundary.toImage(pixelRatio: pixelRatio),
+    );
     return image!;
   } finally {
     debugDisableShadows = true;
@@ -166,7 +185,11 @@ Future<File> _writePng(WidgetTester tester, ui.Image image, String name) async {
 }
 
 /// Menyimpan tampilan saat ini ke `build/shots/<name>.png`.
-Future<File> saveShot(WidgetTester tester, String name, {double pixelRatio = 2.0}) async {
+Future<File> saveShot(
+  WidgetTester tester,
+  String name, {
+  double pixelRatio = 2.0,
+}) async {
   final image = await _capture(tester, pixelRatio);
   final file = await _writePng(tester, image, name);
   image.dispose();
@@ -229,7 +252,9 @@ Future<File> shotStrip(
     canvas.drawImage(images[i], Offset(dx, dy), Paint());
   }
   final picture = recorder.endRecording();
-  final sheet = (await tester.runAsync<ui.Image>(() => picture.toImage(width, height)))!;
+  final sheet = (await tester.runAsync<ui.Image>(
+    () => picture.toImage(width, height),
+  ))!;
   final file = await _writePng(tester, sheet, name);
   for (final image in images) {
     image.dispose();

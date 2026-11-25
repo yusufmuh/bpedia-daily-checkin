@@ -1,9 +1,9 @@
 name: daily_checkin
 description: >-
-  Check-in Harian untuk Bpedia Preview. Engine murni hari WIB (+1 Kelopak per
-  tanggal, bonus +3 tiap hari ke-7, hak produk gratis tiap hari ke-30) dan
-  widget bertema Kebun Bipy yang hanya memakai ColorScheme dan TextTheme host.
-version: 2.0.0
+  Check-in Harian untuk Bpedia Demo v3. Aturan murni hari WIB (+1 Kelopak per
+  tanggal, bonus +3 tiap hari ke-7, produk gratis tiap hari ke-30) dan halaman
+  game siap pakai: strip 7 hari, kisi 30 hari, Bipy bergerak, koin terbang.
+version: 3.0.0
 publish_to: none
 repository: https://github.com/yusufmuh/bpedia-daily-checkin
 
@@ -22,3 +22,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/bipy/
+    - assets/art/
+    - assets/fx/
