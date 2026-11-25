@@ -1,45 +1,14 @@
-# daily_checkin · Check-in Harian (Bpedia Preview)
+# daily_checkin · Check-in Harian v3 (Bpedia Demo)
 
-Paket Flutter untuk Check-in Harian Bpedia: engine murni berbasis tanggal WIB dan tiga widget bertema **Kebun Bipy**. Aturan dan kontrak lengkap ada di [PRD.md](PRD.md); kontrak lintas modul di `bpedia-kelopak-hub/docs/SPEC-CONTRACT.md`.
+Halaman game Check-in Harian siap pakai beserta aturan murninya. +1 Kelopak per tanggal WIB, bonus +3 tiap hari ke-7 beruntun, 1 produk gratis tiap hari ke-30. Bipy bergerak, koin terbang ke saldo, konfeti, tulip tumbuh, dan lembar hasil berpodium. Hanya bergantung pada Flutter SDK.
 
-Aturan singkat: +1 Kelopak per tanggal WIB (1 Kelopak = Rp100), +3 bonus di hari ke-7, 14, 21, … beruntun, 1 hak produk gratis di hari ke-30, 60, … beruntun. Bolong satu tanggal = rentetan mulai dari 1; saldo dan hak lama tetap.
+| Siap klaim | Gelap | Hasil bonus | Hari ke-30 |
+|---|---|---|---|
+| ![](docs/shots/halaman_siap_terang.png) | ![](docs/shots/halaman_siap_gelap.png) | ![](docs/shots/klaim_bonus_hasil.png) | ![](docs/shots/klaim_hari30_hasil.png) |
 
-## Isi paket
-
-| Simbol | Jenis | Fungsi |
-|---|---|---|
-| `CheckInRules` | konstanta | `dailyKelopak` 1, `bonusEvery` 7, `bonusKelopak` 3, `productEvery` 30 |
-| `wibDayOf(DateTime)` | fungsi | hari WIB sejak 1 Jan 1970 (pergantian 00.00 WIB) |
-| `wibWeekdayOf(int)` | fungsi | 1 = Senin … 6 = Sabtu, 7 = Minggu |
-| `wibDateOf(int)` | fungsi | `DateTime` UTC berisi tanggal kalender WIB |
-| `CheckInAward` | kelas nilai | `streak`, `dailyKelopak`, `bonusKelopak`, `productEntitled`, `totalKelopak` |
-| `evaluateCheckIn(...)` | fungsi | hasil klaim, atau `null` bila tanggal sudah diklaim / jam mundur |
-| `liveStreak(...)` | fungsi | rentetan yang masih hidup hari ini (0 bila bolong) |
-| `isClaimedOn(...)` | fungsi | apakah hari ini sudah tidak bisa diklaim |
-| `filledInWeek(...)` | fungsi | jumlah tulip mekar di jejak 7 hari (0..7) |
-| `dayInMonthCycle(...)` | fungsi | progres menuju produk gratis (0..30) |
-| `CheckInButtonState` | enum | `ready`, `claimed` |
-| `CheckInWeekTrack` | widget | 7 slot tulip; slot hari ini berdenyut; slot 7 kado + "+3" |
-| `CheckInMonthProgress` | widget | lintasan 30 hari, penanda 7/14/21/28, hadiah di ujung |
-| `CheckInClaimButton` | widget | "Ambil 1 Kelopak" / "Sudah check-in hari ini" + petunjuk |
-
-Engine tidak punya efek samping: host yang menyimpan `lastClaimDay`, `streak`, dan ledger.
+Lembar animasi klaim (12 bingkai, 130 ms): `docs/shots/klaim_biasa_strip.png`. Halaman penuh: `halaman_siap_panjang_terang.png`, `halaman_hari30_panjang_gelap.png`. Tamu: `halaman_tamu_terang.png`. Teks 200% di lebar 360: `halaman_teks200.png`. Panel uji contoh: `contoh_panel_uji.png`.
 
 ## Pasang
-
-Git (aplikasi di luar workspace). Kunci `ref` ke tag rilis, jangan ke `main` (di GitHub `main` bisa tertinggal dari API yang dijelaskan di sini):
-
-```yaml
-dependencies:
-  daily_checkin:
-    git:
-      url: https://github.com/yusufmuh/bpedia-daily-checkin.git
-      ref: v2.0.0
-```
-
-Tag `v2.0.0` tersedia di GitHub. Kunci `ref` ke tag rilis (atau hash commit), jangan ke `main`.
-
-Workspace lokal (repo bersebelahan dengan `bpedia-kelopak-hub`):
 
 ```yaml
 dependencies:
@@ -47,109 +16,87 @@ dependencies:
     path: ../bpedia-daily-checkin
 ```
 
-Butuh Flutter 3.41+ / Dart 3.11+. Tanpa dependensi pihak ketiga.
+Aset (`assets/bipy/`, `assets/art/`, `assets/fx/`) ikut paket dan dirujuk dengan `package: daily_checkin`. Font mengikuti tema host (Bpedia memakai Poppins).
 
 ## Pakai
 
+Pola: aturan murni → `CheckInViewState` tak-berubah → `CheckInController` abstrak → `CheckInPage`. Host mengisi satu pengendali; halaman tidak tahu data datang dari mana.
+
 ```dart
-import 'package:daily_checkin/daily_checkin.dart';
-import 'package:flutter/material.dart';
-
-/// Bagian layar Check-in Harian. `today` = wibDayOf(jam.now()) + offset demo.
-class CheckInSection extends StatelessWidget {
-  const CheckInSection({
-    super.key,
-    required this.today,
-    required this.lastClaimDay,
-    required this.streak,
-    required this.onClaim,
-  });
-
-  final int today;
-  final int? lastClaimDay;
-  final int streak;
-  final VoidCallback? onClaim;
+class HubCheckInController extends CheckInController {
+  @override
+  CheckInViewState get state => CheckInViewState.fromProgress(
+        today: wibDayOf(clock.now()),
+        lastClaimDay: store.lastClaimDay,
+        storedStreak: store.streak,
+        balance: wallet.balance,
+        signedIn: auth.isLoggedIn,
+        nextResetAt: nextWibMidnight(),
+        rewardProduct: const CheckInRewardProduct(
+          code: 'P39A06S01000089',
+          name: 'Animate Whitening Day Cream 10 g',
+          image: AssetImage('assets/catalog/img/P39A06S01000089-1.webp'),
+          price: 19900,
+        ),
+        soundOn: settings.soundOn,
+      );
 
   @override
-  Widget build(BuildContext context) {
-    final bool claimed = isClaimedOn(today: today, lastClaimDay: lastClaimDay);
-    final int live = liveStreak(
-      today: today,
-      lastClaimDay: lastClaimDay,
-      streak: streak,
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        CheckInWeekTrack(
-          filled: filledInWeek(liveStreak: live, claimedToday: claimed),
-          claimedToday: claimed,
-          currencyIcon: Image.asset('assets/kelopak.png'),
-          bonusIcon: Image.asset('assets/hadiah_bonus.png'),
-        ),
-        const SizedBox(height: 16),
-        CheckInClaimButton(
-          state: claimed ? CheckInButtonState.claimed : CheckInButtonState.ready,
-          onPressed: onClaim,
-          claimedHint: 'Kembali besok mulai 00.00 WIB untuk Hari ke-${live + 1}',
-        ),
-        const SizedBox(height: 24),
-        CheckInMonthProgress(
-          day: dayInMonthCycle(liveStreak: live, claimedToday: claimed),
-          rewardImage: Image.asset('assets/produk_gratis.png'),
-        ),
-      ],
-    );
-  }
+  Future<CheckInClaimResult?> claim() async { /* kirim, simpan, notifyListeners() */ }
+  // refresh, openLogin, openShop, openCart, openProduct, openTerms, playCue, setSoundOn
 }
+
+Navigator.push(context, MaterialPageRoute<void>(
+  builder: (_) => CheckInPage(controller: controller),
+));
 ```
 
-Nama aset di atas milik host; ganti dengan aset aplikasi Anda. Saat tombol diketuk:
+Untuk contoh dan tes: `LocalCheckInController(clock: ..., streak: 3, balance: 24, rewardProduct: ...)`.
 
-```dart
-final CheckInAward? award = evaluateCheckIn(
-  today: today,
-  lastClaimDay: lastClaimDay,
-  streak: streak,
-);
-if (award != null) {
-  // Simpan lastClaimDay = today dan streak = award.streak.
-  // Ledger: +award.dailyKelopak, +award.bonusKelopak bila > 0,
-  // dan satu hak produk bila award.productEntitled.
-}
+## API
+
+| Simbol | Ringkas |
+|---|---|
+| `CheckInPage({required CheckInController controller, VoidCallback? onBack, bool showResultSheet = true})` | Halaman lengkap. `CheckInPage.primaryButtonKey` = kunci tombol utama. |
+| `abstract class CheckInController extends ChangeNotifier` | `CheckInViewState get state`, `DateTime now()`, `Future<void> refresh()`, `Future<CheckInClaimResult?> claim()` (null bila sudah klaim atau tamu; lempar bila gagal), `openLogin()`, `openShop()`, `openCart()`, `openProduct(String code)`, `openTerms()`, `playCue(GameCue cue)`, `setSoundOn(bool value)`. |
+| `CheckInViewState({required signedIn, required balance, required streak, required claimedToday, nextResetAt, rewardProduct, soundOn, busy = false})` | Juga `.guest({rewardProduct, soundOn})` dan `.fromProgress({required today, required lastClaimDay, required storedStreak, required balance, ...})`. Turunan: `weekFilled`, `monthDay`, `monthCycleStart`, `todayStreakDay`, `todayKelopak`, `todayIsBonus`, `todayGrantsProduct`, `daysToBonus`, `daysToProduct`, `copyWith`. |
+| `CheckInRewardProduct({required code, required name, required image, required price, strikePrice})` | Data tampilan produk hari ke-30. |
+| `CheckInClaimResult({required award, required balance, product})` | Hasil klaim: `CheckInAward` dari aturan murni, saldo baru, produk bila menang. |
+| `LocalCheckInController` | Memori: `advanceDays`, `seed`, `reset`, `signedIn`, `rewardProduct`, `latency`, `failNextClaim`, `actions`, `productsWon`. |
+| `GameCue` | Isyarat suara: `tap`, `claim`, `bonus`, `winProduct`, `softError` (dipakai halaman ini). |
+| Widget | `CheckInWeekStrip`, `CheckInMonthGrid`, `CheckInMonthProgress`, `TulipPot`, `CheckInRewardCard`, `CheckInHowTo`, `showCheckInRulesSheet`, `LivelyPose`. |
+| Aset | `CheckInArt` (koin, kado, kalender, tulip 1–5, pose Bipy, stiker), `CheckInSprites.idle` / `.jump`. |
+| Format | `formatRupiah`, `countdownClock`, `countdownSpoken`, `streakMessage`, `weekTileSemantics`. |
+| Aturan murni (tetap dari v2) | `CheckInRules`, `evaluateCheckIn`, `CheckInAward`, `liveStreak`, `isClaimedOn`, `filledInWeek`, `dayInMonthCycle`, `wibDayOf`, `wibWeekdayOf`, `wibDateOf`. |
+
+## Perilaku
+
+- Tamu melihat halaman utuh; tombol utama "Masuk untuk check-in" dan chip saldo memanggil `openLogin`.
+- Sudah klaim: tombol "Kembali besok" nonaktif dengan hitung mundur ke 00.00 WIB; saat lewat tengah malam halaman memanggil `refresh()`.
+- Kurangi gerak (`MediaQuery.disableAnimations`) mematikan denyut, stempel, koin terbang, gerak Bipy, dan gulir animasi.
+- Teks tahan skala 200% di lebar 360 (diuji terang dan gelap).
+
+## Contoh
+
+```bash
+cd example
+flutter pub get
+flutter run
 ```
 
-## Slot tema
-
-Widget hanya membaca `Theme.of(context)`; tidak ada warna tetap.
-
-| Widget | ColorScheme | TextTheme | Slot gambar |
-|---|---|---|---|
-| `CheckInWeekTrack` | `primary` (garis hari ini, lencana, kelopak), `onPrimary`, `primaryContainer` (slot sudah), `secondary` (kelopak belakang, label hari ini), `surfaceContainerLowest` (slot hari ini), `surfaceContainer` (slot belum), `tertiaryContainer` + `onTertiaryContainer` (slot 7), `tertiary` + `onTertiary` (pil "+3"), `onSurface`, `onSurfaceVariant` (label, tangkai) | `labelSmall` | `currencyIcon` 16 dp, `bonusIcon` 26 dp (cadangan `Icons.card_giftcard`) |
-| `CheckInMonthProgress` | `primary` (isi, ikon hadiah), `onPrimary` (titik terlewati), `secondaryContainer` (lintasan), `outline` (titik berikutnya), `secondary` (teks 30/30), `tertiaryContainer` + `onTertiaryContainer` (hadiah tercapai), `onSurface`, `onSurfaceVariant` | `titleSmall`, `labelLarge` | `rewardImage` 28 dp (cadangan `Icons.redeem`) |
-| `CheckInClaimButton` | gaya `FilledButton` tema (siap); `primaryContainer`, `onPrimaryContainer`, `secondary` (sudah); `onSurfaceVariant` (petunjuk) | `bodySmall` + gaya tombol tema | — |
-
-`Icon` di slot gambar otomatis berukuran sesuai slot; `Image` dipaskan ke kotak slot.
-
-## Aksesibilitas & gerak
-
-- Tiap slot jejak punya label sendiri: "Hari 4, hari ini, belum check-in", "Hari 7, belum, bonus 3 Kelopak".
-- Progres: label "Progres produk gratis", nilai "12 dari 30 hari".
-- Teks 200% di layar 360 dp tanpa overflow dan tanpa diperkecil: label "Hari N" boleh membungkus, dan jejak 7 hari pecah menjadi baris (4 + 3) bila kata tidak muat sejajar.
-- Slot hari ini berdenyut 1,0 sampai 1,06 (1,2 dtk) dan berhenti bila `MediaQuery.disableAnimationsOf(context)` true.
-
-Catatan test host: denyut berjalan terus selama slot hari ini tampil, jadi `pumpAndSettle()` akan timeout. Bungkus dengan `MediaQuery(data: ...copyWith(disableAnimations: true))` atau pakai `pump(Duration)`.
+Tombol kembali di contoh membuka **Panel uji**: besok / lompat 2 hari, susun streak (0, 3, 6, 13, 20, 29, 34), masuk/tamu, produk host, jaringan lambat, gagalkan klaim, tema gelap, kurangi gerak, catatan aksi, atur ulang.
 
 ## Server
 
-`server/checkin.php` mencerminkan aturan yang sama (`CheckInEngine`) dan menyediakan `claimDay(array &$state, int $today): string` untuk router demo hub.
+`server/checkin.php` mencerminkan aturan yang sama dan menyediakan `claimDay(array &$state, int $today): string`.
 
 ## Perintah
 
 ```bash
-flutter pub get
 flutter analyze
-flutter test
-php -l server/checkin.php
-php server/checkin.php   # swa-uji aturan server
+flutter test --concurrency=3            # semua tes
+flutter test --concurrency=3 test/shots # tangkapan layar ke build/shots/
+php server/checkin.php                  # swa-uji aturan server
 ```
+
+Dokumen: `PRD.md` (produk v3), `CHANGELOG.md`, `PROGRESS-M1.md` (catatan pembangunan).
