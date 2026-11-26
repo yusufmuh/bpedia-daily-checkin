@@ -55,21 +55,25 @@ Contoh: 23 Nov 2026 16.59.59 UTC = hari 20780 (Senin 23 Nov WIB); 23 Nov 2026 17
 
 | Bagian | Isi |
 |---|---|
-| Hero pesta | Judul "Klaim Kelopak", ringkas aturan, chip saldo Kelopak (tujuan koin terbang), chip streak, Bipy sprite diam (ketuk = lompat), koin dan stiker melayang dengan paralaks. App bar: kembali, suara (bila host memberi status), "Aturan". |
-| Minggu ini | Strip 7 ubin (+1 ×6, hari ke-7 +4 berpita "Bonus"), ubin hari ini berpita "Hari ini" dan berdenyut, stempel saat klaim, kalimat streak. |
-| Menuju produk gratis | Tulip tumbuh 5 tahap (tonggak 7/14/21/30), bar progres bertonggak, kisi 30 hari 7 kolom (sel bonus emas +3 mengikuti hari streak sebenarnya, hari ke-30 berkado), spanduk "30 hari = 1 produk gratis", legenda, kartu produk hadiah dari host. |
-| Cara main | Tiga langkah bergambar, "1 Kelopak = Rp100", tautan syarat. |
+| Hero pesta | Judul "Check-in Harian" (26 sp), kalimat streak ("**Streak N hari** · jangan terlewat ya, Babes"), chip saldo Kelopak (tujuan koin terbang), Bipy sprite diam (ketuk = lompat), koin dan stiker melayang dengan paralaks. App bar: kembali, suara (bila host memberi status), "Aturan". |
+| Kartu 3 aturan | Tepat di bawah hero, tiga kolom berikon: "+1/hari · Kelopak tiap check-in", "7 hari · Bonus +3 Kelopak", "30 hari · 1 produk gratis". |
+| Kisi 30 hari | Satu baris "Hari ke-N dari 30" + "Hadiah: <nama produk>" + foto 40 dp (ketuk = `openProduct`). Kisi 7 kolom, sel ±46x56 dp, celah 6, label "Hari N" atau "Hari ini" di atas ikon dan nilai (+1/+4). Hari bonus (hari streak kelipatan 7) berkepala pink dengan kado "+4"; hari yang sudah diklaim memakai satu warna sukses dengan centang hijau besar; sel 29-30 diikuti kartu "Selesai 30 hari! Dapat 1 produk gratis" selebar 5 kolom. Seluruh kisi terlihat di lipatan pertama 390x844. Catatan pengiriman tanpa ongkir di bawahnya. |
+| Ketentuan | Butir: hari WIB dan pukul 00.00, terlewat sehari mulai lagi dari hari 1, Kelopak memotong harga saat checkout (1 Kelopak = Rp100); tautan syarat lengkap. |
 | Bar bawah | Satu tombol permen: siap = "Check-in sekarang" + hadiah hari ini; sudah = "Kembali besok" + hitung mundur ke 00.00 WIB; tamu = "Masuk untuk check-in". |
 
 ### 4.2 Urutan klaim
 
-Ketuk tombol → gulir ke atas bila perlu → `controller.claim()` → ubin hari ini membal dan distempel → Bipy lompat, konfeti, koin terbang dari ubin ke chip saldo (saldo ditahan sampai koin pertama tiba lalu hitung naik) → hari bonus: meriam konfeti → lembar hasil:
+Ketuk tombol → gulir ke atas bila perlu → `controller.claim()` → sel hari ini di kisi membal → Bipy lompat, konfeti, koin terbang dari ubin ke chip saldo (saldo ditahan sampai koin pertama tiba lalu hitung naik) → hari bonus: meriam konfeti → lembar hasil:
 
 | Klaim | Lembar hasil |
 |---|---|
-| Biasa | "Berhasil!", koin di podium, +1 Kelopak, sisa hari ke bonus, Bipy pose bintang. |
-| Hari ke-7/14/21/28/… | "Bonus!", kado terbuka, +4 Kelopak, Bipy pose mawar. |
-| Hari ke-30/60/… | "Selamat!", foto produk di podium, nama produk, "Lihat keranjang" (`openCart`), Bipy pose lompat bintang. |
+| Biasa | "Check-in hari ke-N berhasil!", pil "Streak N hari", koin di podium, +1 Kelopak, "Saldo kamu sekarang S Kelopak, senilai RpX.", catatan "N hari lagi bonus +3 Kelopak", Bipy pose bintang. |
+| Hari ke-7/14/21/28/… | Pita "Bonus!", "Bonus 7 hari beruntun!", pil streak, kado terbuka, +4 Kelopak, saldo dan nilai rupiahnya, Bipy pose mawar. |
+| Hari ke-30/60/… | "Selamat!", foto produk di podium, nama produk, saldo dan nilai rupiahnya, "Lihat keranjang" (`openCart`), Bipy pose lompat bintang. |
+
+Tautan kedua di lembar hasil: "Lanjut putar Roda Sabtu" (`openWheel`) bila `controller.wheelReady` (host: hari Sabtu dan roda belum diputar), selain itu "Belanja sekarang" (`openShop`).
+
+Bonus tetap dihitung per hari streak (kelipatan 7), sama dengan server. Pada siklus 30 hari kedua dan seterusnya sel bonus bergeser mengikuti streak sebenarnya (mis. streak 31-60: posisi 5/12/19/26); kisi adalah satu-satunya penanda sehingga tidak ada label yang bertentangan.
 
 Gagal kirim → snackbar "Check-in belum berhasil. Periksa koneksimu, lalu coba lagi." dan tombol tetap siap. Ketukan ganda diabaikan.
 
@@ -80,7 +84,7 @@ Halaman memanggil `controller.playCue(GameCue)`: `tap`, `claim` (koin pertama ti
 ### 4.4 Aksesibilitas
 
 - Target sentuh ≥ 48 dp; tombol, ubin, kisi, progres, tulip, dan kartu hadiah punya label Semantics (mis. "Hari 4, hari ini, belum check-in").
-- Teks ikut skala 200% di lebar 360 tanpa luapan (diuji di kedua tema); strip 7 hari turun baris bila sempit, pita ubin ikut membesar. Judul pajangan hero dibatasi 1,6x.
+- Teks ikut skala 200% di lebar 360 tanpa luapan (diuji di kedua tema); kisi berganti 5 kolom pada huruf besar atau lebar sempit dan kartu "Selesai 30 hari!" turun ke baris sendiri. Judul pajangan hero dan label sel dibatasi 1,6x.
 - `MediaQuery.disableAnimations`: tanpa denyut, stempel, gulir animasi, koin terbang, maupun gerak Bipy; hasil tetap tampil.
 
 ## 5. API publik (`package:daily_checkin/daily_checkin.dart`)
@@ -92,7 +96,8 @@ Halaman memanggil `controller.playCue(GameCue)`: `tap`, `claim` (koin pertama ti
 | `CheckInController` | `abstract class ... extends ChangeNotifier`: `state`, `now()`, `refresh()`, `claim()` → `CheckInClaimResult?`, `openLogin`, `openShop`, `openCart`, `openProduct(code)`, `openTerms`, `playCue(GameCue)`, `setSoundOn(bool)`. |
 | `LocalCheckInController` | Pengendali memori untuk contoh dan tes (geser hari, susun streak, jeda, gagal sekali, catatan aksi). |
 | `CheckInPage` | `CheckInPage({required controller, onBack, showResultSheet = true})`. |
-| Widget | `CheckInWeekStrip`, `CheckInMonthGrid`, `CheckInMonthProgress`, `TulipPot`, `CheckInRewardCard`, `CheckInHowTo`, `showCheckInRulesSheet`, `LivelyPose`. |
+| Widget di halaman | `CheckInHowTo` (kartu 3 aturan), `CheckInCycleHeader`, `CheckInMonthGrid`, `CheckInTerms`, `showCheckInRulesSheet`, `LivelyPose`. |
+| Widget lepas untuk host | `CheckInWeekStrip` (strip 7 hari, mis. untuk hero Zona Hadiah), `CheckInMonthProgress`, `TulipPot`, `CheckInRewardCard`. Tidak dipakai `CheckInPage`. |
 | Aturan murni | `CheckInRules`, `evaluateCheckIn`, `liveStreak`, `isClaimedOn`, `filledInWeek`, `dayInMonthCycle`, `wibDayOf` dkk. (tidak berubah dari v2). |
 
 ## 6. Server (`server/checkin.php`, tidak berubah)
@@ -106,7 +111,7 @@ Halaman memanggil `controller.playCue(GameCue)`: `tap`, `claim` (koin pertama ti
 
 - Tes aturan v2 (`check_in_engine_test.dart`, `wib_calendar_test.dart`) tidak disentuh dan lolos.
 - Tes unit ViewState, pengendali lokal, format; tes widget (kasus v2 dibawa ke strip/kisi/progres baru); tes halaman (tamu, klaim biasa/bonus/produk, gagal, ketukan ganda, pergantian hari WIB, suara, aturan, kartu hadiah, skala teks 200% kedua tema).
-- `flutter analyze` 0 isu. Tangkapan layar terang + gelap dan lembar animasi di `docs/shots/`.
+- `flutter analyze` 0 isu. Tangkapan layar terang + gelap dan lembar animasi di `docs/shots/` (JPG, tiap berkas < 500 KB).
 
 ## 8. Di luar cakupan paket
 

@@ -24,6 +24,11 @@ void main() {
     await tester.tap(find.text('Besok'));
     await tester.pump();
     expect(controller.dayOffset, 1);
+    await tester.ensureVisible(find.text('Roda Sabtu siap diputar'));
+    await tester.tap(find.text('Roda Sabtu siap diputar'));
+    await tester.pump();
+    expect(controller.wheelReady, isTrue);
+    await tester.ensureVisible(find.text('Kurangi gerak'));
     await tester.tap(find.text('Kurangi gerak'));
     for (int i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 60));

@@ -215,6 +215,13 @@ class TestPanel extends StatelessWidget {
                               () => controller.failNextClaim = value,
                             ),
                           ),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Roda Sabtu siap diputar'),
+                            value: controller.wheelReady,
+                            onChanged: (bool value) =>
+                                setLocal(() => controller.wheelReady = value),
+                          ),
                         ],
                       ),
                 ),
