@@ -21,6 +21,7 @@ class LocalCheckInController extends CheckInController {
     bool? soundOn = true,
     this.latency = Duration.zero,
     this.failNextClaim = false,
+    this.wheelReady = false,
   }) : _clock = clock ?? DateTime.now,
        _signedIn = signedIn,
        _balance = balance,
@@ -36,6 +37,10 @@ class LocalCheckInController extends CheckInController {
 
   /// Bila `true`, klaim berikutnya gagal sekali (untuk mencoba pesan galat).
   bool failNextClaim;
+
+  /// Roda Sabtu siap diputar (meniru host pada hari Sabtu).
+  @override
+  bool wheelReady;
 
   bool _signedIn;
   int _balance;
@@ -191,6 +196,9 @@ class LocalCheckInController extends CheckInController {
 
   @override
   void openTerms() => _actions.add('openTerms');
+
+  @override
+  void openWheel() => _actions.add('openWheel');
 
   @override
   void playCue(GameCue cue) => _actions.add('cue:${cue.name}');

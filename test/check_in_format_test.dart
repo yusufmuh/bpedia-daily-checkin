@@ -58,6 +58,23 @@ void main() {
     });
   });
 
+  group('balanceSentence dan nextBonusNote', () {
+    test('saldo beserta nilai rupiah', () {
+      expect(
+        balanceSentence(129),
+        'Saldo kamu sekarang 129 Kelopak, senilai Rp12.900.',
+      );
+      expect(balanceSentence(0), 'Saldo kamu sekarang 0 Kelopak, senilai Rp0.');
+    });
+
+    test('sisa hari menuju bonus berikutnya', () {
+      expect(nextBonusNote(12), '2 hari lagi bonus +3 Kelopak');
+      expect(nextBonusNote(6), '1 hari lagi bonus +3 Kelopak');
+      expect(nextBonusNote(7), '7 hari lagi bonus +3 Kelopak');
+      expect(nextBonusNote(0), '7 hari lagi bonus +3 Kelopak');
+    });
+  });
+
   group('streakMessage', () {
     test('tamu diajak masuk', () {
       expect(
@@ -73,7 +90,7 @@ void main() {
     test('hari biasa belum klaim', () {
       expect(
         streakMessage(_state(3)),
-        'Streak 3 hari · jangan sampai terlewat ya, Babes',
+        'Streak 3 hari · jangan terlewat ya, Babes',
       );
     });
 

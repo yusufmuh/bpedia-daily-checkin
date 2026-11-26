@@ -326,22 +326,87 @@ void main() {
         find.bySemanticsLabel('Kalender 30 hari'),
       );
       expect(node.value, contains('ke-5, ke-12, ke-19, ke-26'));
-      expect(find.text('+3'), findsNWidgets(4));
+      expect(find.text('+4'), findsNWidgets(4));
     });
 
-    testWidgets('30 sel bernomor, spanduk, dan legenda', (
+    testWidgets('30 sel berlabel "Hari N" dan kartu "Selesai 30 hari!"', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
         _host(const CheckInMonthGrid(day: 10, claimedToday: true)),
       );
       for (int day = 1; day <= 30; day++) {
-        expect(find.text('$day'), findsWidgets);
+        expect(find.text('Hari $day'), findsOneWidget);
       }
-      expect(find.text('30 hari = 1 produk gratis'), findsOneWidget);
-      expect(find.text('+1 Kelopak'), findsOneWidget);
-      expect(find.text('Bonus +3 Kelopak'), findsOneWidget);
-      expect(find.text('Produk gratis'), findsOneWidget);
+      expect(find.text('Hari ini'), findsNothing);
+      expect(find.text('Selesai 30 hari!'), findsOneWidget);
+      expect(find.text('Dapat 1 produk gratis'), findsOneWidget);
+      expect(find.text('+4'), findsNWidgets(4));
+      expect(find.text('+1'), findsNWidgets(26));
+      expect(find.byIcon(Icons.check_rounded), findsNWidgets(10));
+    });
+
+    testWidgets('sel hari ini menggantikan label "Hari N"', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(const CheckInMonthGrid(day: 11, claimedToday: false)),
+      );
+      expect(find.text('Hari ini'), findsOneWidget);
+      expect(find.text('Hari 12'), findsNothing);
+      expect(find.byIcon(Icons.check_rounded), findsNWidgets(11));
+    });
+
+    testWidgets('jangkar koin: sel hari ini, atau sel terakhir yang diklaim', (
+      WidgetTester tester,
+    ) async {
+      final GlobalKey anchor = GlobalKey();
+      await tester.pumpWidget(
+        _host(
+          CheckInMonthGrid(day: 3, claimedToday: false, todayAnchorKey: anchor),
+        ),
+      );
+      final double todayX = tester.getCenter(find.byKey(anchor)).dx;
+      expect(
+        (todayX - tester.getCenter(find.text('Hari ini')).dx).abs(),
+        lessThan(2),
+      );
+      await tester.pumpWidget(
+        _host(
+          CheckInMonthGrid(day: 4, claimedToday: true, todayAnchorKey: anchor),
+        ),
+      );
+      expect(
+        (tester.getCenter(find.byKey(anchor)).dx -
+                tester.getCenter(find.text('Hari 4')).dx)
+            .abs(),
+        lessThan(2),
+      );
+    });
+
+    testWidgets('foto hadiah tampil di kartu "Selesai 30 hari!"', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          CheckInMonthGrid(
+            day: 0,
+            claimedToday: false,
+            rewardImage: demoRewardProduct.image,
+          ),
+        ),
+      );
+      expect(
+        find.byWidgetPredicate(
+          (Widget w) => w is Image && w.image == demoRewardProduct.image,
+        ),
+        findsOneWidget,
+      );
+    });
+
+    test('posisi bonus mengikuti hari streak', () {
+      expect(CheckInMonthGrid.bonusPositions(0), <int>[7, 14, 21, 28]);
+      expect(CheckInMonthGrid.bonusPositions(30), <int>[5, 12, 19, 26]);
     });
 
     for (final Brightness brightness in Brightness.values) {
@@ -458,15 +523,77 @@ void main() {
     });
   });
 
-  group('CheckInHowTo dan aturan', () {
-    testWidgets('tiga langkah dan tautan syarat', (WidgetTester tester) async {
+  group('CheckInCycleHeader', () {
+    testWidgets('hari ke-N, nama hadiah, dan bisa dibuka', (
+      WidgetTester tester,
+    ) async {
+      int opened = 0;
+      await tester.pumpWidget(
+        _host(
+          CheckInCycleHeader(
+            day: 12,
+            product: demoRewardProduct,
+            onOpenProduct: () => opened++,
+          ),
+        ),
+      );
+      expect(find.text('Hari ke-12 dari 30'), findsOneWidget);
+      expect(find.text('Hadiah: ${demoRewardProduct.name}'), findsOneWidget);
+      await tester.tap(find.text('Hari ke-12 dari 30'));
+      expect(opened, 1);
+    });
+
+    testWidgets('tanpa produk: hadiah umum, hari dibatasi 1..30', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(_host(const CheckInCycleHeader(day: 45)));
+      expect(find.text('Hari ke-30 dari 30'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(
+          'Hari ke-30 dari 30. Hadiah: 1 produk gratis pilihan Bpedia',
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('CheckInHowTo, ketentuan, dan aturan', () {
+    testWidgets('kartu tiga aturan', (WidgetTester tester) async {
+      await tester.pumpWidget(_host(const CheckInHowTo()));
+      expect(find.text('+1/hari'), findsOneWidget);
+      expect(find.text('Kelopak tiap check-in'), findsOneWidget);
+      expect(find.text('7 hari'), findsOneWidget);
+      expect(find.text('Bonus +3 Kelopak'), findsOneWidget);
+      expect(find.text('30 hari'), findsOneWidget);
+      expect(find.text('1 produk gratis'), findsOneWidget);
+      expect(find.bySemanticsLabel('7 hari: Bonus +3 Kelopak'), findsOneWidget);
+    });
+
+    testWidgets('kartu aturan pada teks 200% menjadi daftar tegak', (
+      WidgetTester tester,
+    ) async {
+      await loadShotFonts(tester);
+      await tester.pumpWidget(
+        _host(const CheckInHowTo(), width: 360, textScale: 2),
+      );
+      expect(tester.takeException(), isNull);
+      final double first = tester.getTopLeft(find.text('+1/hari')).dy;
+      final double second = tester.getTopLeft(find.text('7 hari')).dy;
+      expect(second, greaterThan(first));
+    });
+
+    testWidgets('ketentuan: butir dan tautan syarat', (
+      WidgetTester tester,
+    ) async {
       int terms = 0;
-      await tester.pumpWidget(_host(CheckInHowTo(onOpenTerms: () => terms++)));
-      expect(find.text('Check-in tiap hari'), findsOneWidget);
-      expect(find.text('7 hari beruntun'), findsOneWidget);
-      expect(find.text('30 hari tanpa putus'), findsOneWidget);
-      await tester.tap(find.text('Syarat dan ketentuan'));
+      await tester.pumpWidget(_host(CheckInTerms(onOpenTerms: () => terms++)));
+      for (final String line in checkInTermLines) {
+        expect(find.text(line), findsOneWidget);
+      }
+      await tester.tap(find.text('Syarat dan ketentuan lengkap'));
       expect(terms, 1);
+      await tester.pumpWidget(_host(const CheckInTerms()));
+      expect(find.text('Syarat dan ketentuan lengkap'), findsNothing);
     });
 
     testWidgets('lembar aturan memuat semua baris dan bisa ditutup', (

@@ -38,10 +38,12 @@ Future<void> _claimAndCapture(
 }
 
 void main() {
-  testWidgets('klaim biasa hari ke-4', (WidgetTester tester) async {
+  testWidgets('klaim biasa hari ke-12, Roda Sabtu siap', (
+    WidgetTester tester,
+  ) async {
     await _claimAndCapture(
       tester,
-      controller: localController(),
+      controller: localController(streak: 11, balance: 128)..wheelReady = true,
       name: 'klaim_biasa',
     );
   });

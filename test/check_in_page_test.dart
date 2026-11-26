@@ -1,5 +1,6 @@
 import 'package:daily_checkin/daily_checkin.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/check_in_harness.dart';
@@ -50,8 +51,9 @@ void main() {
     ) async {
       final LocalCheckInController c = localController(signedIn: false);
       await _open(tester, c);
-      expect(find.text('Minggu ini'), findsOneWidget);
-      expect(find.text('Menuju produk gratis'), findsOneWidget);
+      expect(find.text('Check-in Harian'), findsWidgets);
+      expect(find.text('Selesai 30 hari!'), findsOneWidget);
+      expect(find.text('Hari ini'), findsOneWidget);
       expect(find.text('Masuk untuk check-in'), findsOneWidget);
       await tester.tap(_primary);
       expect(c.actions, contains('openLogin'));
@@ -72,10 +74,16 @@ void main() {
     ) async {
       await _open(tester, localController());
       expect(find.text('Check-in sekarang'), findsOneWidget);
-      expect(find.text('+1 Kelopak'), findsWidgets);
-      expect(find.text('Streak 3 hari'), findsOneWidget);
+      expect(find.text('24 Kelopak'), findsOneWidget);
       expect(
-        find.descendant(of: _primary, matching: find.text('+1 Kelopak')),
+        find.text('Streak 3 hari · jangan terlewat ya, Babes'),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: _primary,
+          matching: find.text('+1 Kelopak hari ini'),
+        ),
         findsOneWidget,
       );
     });
@@ -125,12 +133,18 @@ void main() {
       await _open(tester, c);
       await _claim(tester);
       expect(c.state.balance, 25);
-      expect(find.text('Berhasil!'), findsOneWidget);
-      expect(find.text('Check-in hari ke-4'), findsOneWidget);
+      expect(find.text('Check-in hari ke-4 berhasil!'), findsOneWidget);
+      expect(find.text('Streak 4 hari'), findsOneWidget);
+      expect(
+        find.text('Saldo kamu sekarang 25 Kelopak, senilai Rp2.500.'),
+        findsOneWidget,
+      );
+      expect(find.text('3 hari lagi bonus +3 Kelopak'), findsOneWidget);
+      expect(find.text('1 Kelopak = Rp100'), findsNothing);
       expect(c.actions, containsAllInOrder(<String>['cue:tap', 'cue:claim']));
       await tester.tap(find.text('Mantap'));
       await _pumpFor(tester, 800);
-      expect(find.text('Berhasil!'), findsNothing);
+      expect(find.text('Check-in hari ke-4 berhasil!'), findsNothing);
       expect(find.text('Kembali besok'), findsOneWidget);
       expect(find.text('25 Kelopak'), findsOneWidget);
     });
@@ -141,6 +155,14 @@ void main() {
       await _claim(tester);
       expect(find.text('Bonus!'), findsOneWidget);
       expect(find.text('Streak 7 hari'), findsWidgets);
+      expect(
+        find.text(
+          'Termasuk bonus +3 Kelopak. Saldo kamu sekarang 28 Kelopak, '
+          'senilai Rp2.800.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('7 hari lagi bonus +3 Kelopak'), findsOneWidget);
       expect(c.actions, contains('cue:bonus'));
       expect(c.state.balance, 28);
     });
@@ -169,6 +191,25 @@ void main() {
       await tester.tap(find.text('Belanja sekarang'));
       await _pumpFor(tester, 800);
       expect(c.actions.last, 'openShop');
+    });
+
+    testWidgets('Roda Sabtu siap: lembar hasil mengajak lanjut ke roda', (
+      WidgetTester tester,
+    ) async {
+      final LocalCheckInController c = localController(streak: 11, balance: 128)
+        ..wheelReady = true;
+      await _open(tester, c);
+      await _claim(tester);
+      expect(find.text('Check-in hari ke-12 berhasil!'), findsOneWidget);
+      expect(
+        find.text('Saldo kamu sekarang 129 Kelopak, senilai Rp12.900.'),
+        findsOneWidget,
+      );
+      expect(find.text('2 hari lagi bonus +3 Kelopak'), findsOneWidget);
+      expect(find.text('Belanja sekarang'), findsNothing);
+      await tester.tap(find.text('Lanjut putar Roda Sabtu'));
+      await _pumpFor(tester, 800);
+      expect(c.actions.last, 'openWheel');
     });
 
     testWidgets('klaim gagal: pesan galat, tombol tetap siap', (
@@ -202,7 +243,7 @@ void main() {
         ),
       );
       await _claim(tester);
-      expect(find.text('Berhasil!'), findsNothing);
+      expect(find.text('Check-in hari ke-4 berhasil!'), findsNothing);
       expect(c.state.claimedToday, isTrue);
     });
 
@@ -215,7 +256,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('24 Kelopak'), findsOneWidget);
       await _pumpFor(tester, 3000);
-      expect(find.text('Berhasil!'), findsOneWidget);
+      expect(find.text('Check-in hari ke-4 berhasil!'), findsOneWidget);
       expect(c.state.balance, 25);
       expect(tester.takeException(), isNull);
     });
@@ -285,8 +326,8 @@ void main() {
       WidgetTester tester,
     ) async {
       final LocalCheckInController c = localController();
-      await _open(tester, c, size: const Size(390, 2000));
-      await tester.tap(find.text(demoRewardProduct.name));
+      await _open(tester, c);
+      await tester.tap(find.text('Hadiah: ${demoRewardProduct.name}'));
       expect(c.actions.last, 'openProduct:${demoRewardProduct.code}');
     });
 
@@ -315,6 +356,58 @@ void main() {
       await tester.pump();
       expect(find.text('5 Kelopak'), findsNothing);
       expect(find.text('91 Kelopak'), findsOneWidget);
+    });
+  });
+
+  group('CheckInPage komposisi rancangan owner', () {
+    testWidgets('tanpa strip "Minggu ini" dan kartu "Menuju produk gratis"', (
+      WidgetTester tester,
+    ) async {
+      await _open(tester, localController(), size: const Size(390, 1300));
+      expect(find.text('Minggu ini'), findsNothing);
+      expect(find.text('Menuju produk gratis'), findsNothing);
+      expect(find.text('Klaim Kelopak'), findsNothing);
+      expect(find.byType(CheckInWeekStrip), findsNothing);
+      expect(find.text('+1/hari'), findsOneWidget);
+      expect(find.text('Ketentuan'), findsOneWidget);
+    });
+
+    testWidgets('kisi 30 hari utuh di lipatan pertama 390x844', (
+      WidgetTester tester,
+    ) async {
+      await loadShotFonts(tester);
+      await _open(tester, localController(streak: 11));
+      final double barTop = tester.getTopLeft(_primary).dy;
+      final Rect grid = tester.getRect(find.byType(CheckInMonthGrid));
+      final Rect rules = tester.getRect(find.byType(CheckInHowTo));
+      expect(grid.bottom, lessThanOrEqualTo(barTop));
+      expect(rules.bottom, lessThan(grid.top));
+      expect(find.text('Hari ini'), findsOneWidget);
+    });
+
+    testWidgets('baris di atas kisi: hari ke-N dan hadiah', (
+      WidgetTester tester,
+    ) async {
+      await _open(tester, localController(streak: 11));
+      expect(find.text('Hari ke-12 dari 30'), findsOneWidget);
+      expect(find.text('Hadiah: ${demoRewardProduct.name}'), findsOneWidget);
+    });
+
+    testWidgets('siklus kedua: hari ini dan bonus cocok dengan kisi', (
+      WidgetTester tester,
+    ) async {
+      await _open(tester, localController(streak: 31));
+      expect(find.text('Minggu ini'), findsNothing);
+      expect(find.text('Hari ke-2 dari 30'), findsOneWidget);
+      expect(find.text('Hari 1'), findsOneWidget);
+      expect(find.text('Hari 2'), findsNothing);
+      expect(find.text('Hari ini'), findsOneWidget);
+      final SemanticsNode node = tester.getSemantics(
+        find.bySemanticsLabel('Kalender 30 hari'),
+      );
+      expect(node.value, contains('Hari ini hari ke-2.'));
+      expect(node.value, contains('ke-5, ke-12, ke-19, ke-26'));
+      expect(find.text('+4'), findsNWidgets(4));
     });
   });
 

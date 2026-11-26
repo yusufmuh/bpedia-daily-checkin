@@ -278,6 +278,14 @@ abstract class CheckInController extends ChangeNotifier {
   /// Membuka syarat dan ketentuan lengkap.
   void openTerms();
 
+  /// Roda Sabtu bisa diputar sekarang (hari Sabtu dan belum diputar). Bila
+  /// `true`, lembar hasil check-in mengajak lanjut ke roda lewat [openWheel]
+  /// alih-alih "Belanja sekarang". Bawaan `false`.
+  bool get wheelReady => false;
+
+  /// Membuka Roda Sabtu. Hanya dipanggil saat [wheelReady].
+  void openWheel() {}
+
   /// Memutar suara [cue]. Getar sudah ditangani halaman.
   void playCue(GameCue cue) {}
 

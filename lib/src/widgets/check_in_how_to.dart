@@ -4,110 +4,70 @@ import '../check_in_assets.dart';
 import '../kit/kit.dart';
 import 'check_in_tones.dart';
 
-/// Satu langkah "Cara main".
+/// Satu kolom kartu aturan.
 @immutable
-class _Step {
-  const _Step(this.art, this.title, this.reward);
+class _Rule {
+  const _Rule(this.art, this.value, this.detail);
 
   final ImageProvider art;
-  final String title;
-  final String reward;
+  final String value;
+  final String detail;
 }
 
-const List<_Step> _steps = <_Step>[
-  _Step(CheckInArt.calendar, 'Check-in tiap hari', '+1 Kelopak'),
-  _Step(CheckInArt.giftClosed, '7 hari beruntun', 'Bonus +3 Kelopak'),
-  _Step(CheckInArt.giftOpen, '30 hari tanpa putus', '1 produk gratis'),
+final List<_Rule> _rules = <_Rule>[
+  const _Rule(CheckInArt.coin, '+1/hari', 'Kelopak tiap check-in'),
+  const _Rule(CheckInArt.giftClosed, '7 hari', 'Bonus +3 Kelopak'),
+  _Rule(CheckInArt.tulips.last, '30 hari', '1 produk gratis'),
 ];
 
-/// "Cara main": tiga langkah berikon 3D, kurs Kelopak, dan tautan S&K.
-///
-/// Tiga kolom pada huruf normal; daftar tegak pada huruf besar atau panel
-/// sempit.
+/// Kartu tiga aturan di bawah hero: +1/hari, 7 hari bonus +3, 30 hari
+/// produk gratis. Tiga kolom berikon pada huruf normal; daftar tegak pada
+/// huruf besar atau kartu sempit.
 class CheckInHowTo extends StatelessWidget {
-  /// Membuat blok cara main.
-  const CheckInHowTo({super.key, this.onOpenTerms});
-
-  /// Membuka syarat dan ketentuan lengkap. `null` menyembunyikan tautan.
-  final VoidCallback? onOpenTerms;
+  /// Membuat kartu aturan.
+  const CheckInHowTo({super.key});
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final CheckInTones tones = CheckInTones.of(context);
     final TextStyle base = theme.textTheme.bodyMedium ?? const TextStyle();
-    final TextStyle titleStyle = base.copyWith(
-      fontSize: 12,
-      height: 16 / 12,
-      fontWeight: FontWeight.w600,
-      color: tones.text,
+    final TextStyle valueStyle = base.copyWith(
+      fontSize: 14,
+      height: 18 / 14,
+      fontWeight: FontWeight.w800,
+      color: tones.brand,
     );
-    final TextStyle rewardStyle = base.copyWith(
+    final TextStyle detailStyle = base.copyWith(
       fontSize: 11,
       height: 14 / 11,
-      fontWeight: FontWeight.w700,
-      color: tones.onGoldTint,
+      fontWeight: FontWeight.w500,
+      color: tones.text,
     );
 
-    Widget number(int index) => DecoratedBox(
-      decoration: BoxDecoration(color: tones.brand, shape: BoxShape.circle),
-      child: SizedBox.square(
-        dimension: 18,
-        child: Center(
-          child: Text(
-            '${index + 1}',
-            textScaler: TextScaler.noScaling,
-            style: base.copyWith(
-              fontSize: 10,
-              height: 1,
-              fontWeight: FontWeight.w800,
-              color: tones.onBrand,
+    Widget rule(int i) => Semantics(
+      container: true,
+      label: '${_rules[i].value}: ${_rules[i].detail}',
+      child: ExcludeSemantics(
+        child: Row(
+          children: <Widget>[
+            Bobbing(
+              amplitude: 1.5,
+              phase: i / 3,
+              child: Image(image: _rules[i].art, width: 26, height: 26),
             ),
-          ),
-        ),
-      ),
-    );
-
-    Widget art(int index) => SizedBox.square(
-      dimension: 60,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: <Widget>[
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: tones.brandTint,
-                shape: BoxShape.circle,
+            const SizedBox(width: 6),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(_rules[i].value, style: valueStyle),
+                  Text(_rules[i].detail, style: detailStyle),
+                ],
               ),
             ),
-          ),
-          Center(
-            child: Bobbing(
-              amplitude: 2.5,
-              phase: index / 3,
-              child: Image(
-                image: _steps[index].art,
-                width: 46,
-                height: 46,
-              ),
-            ),
-          ),
-          Positioned(top: -2, left: -2, child: number(index)),
-        ],
-      ),
-    );
-
-    Widget reward(int index) => DecoratedBox(
-      decoration: ShapeDecoration(
-        color: tones.goldTint,
-        shape: const StadiumBorder(),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        child: Text(
-          _steps[index].reward,
-          textAlign: TextAlign.center,
-          style: rewardStyle,
+          ],
         ),
       ),
     );
@@ -116,138 +76,123 @@ class CheckInHowTo extends StatelessWidget {
       builder: (BuildContext context, BoxConstraints constraints) {
         final bool columns =
             MediaQuery.textScalerOf(context).scale(12) <= 15 &&
-            constraints.maxWidth >= 280;
-        final Widget steps = columns
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  for (int i = 0; i < _steps.length; i++) ...<Widget>[
-                    if (i > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 20),
-                        child: Icon(
-                          Icons.chevron_right_rounded,
-                          size: 20,
-                          color: tones.brandLine,
-                        ),
-                      ),
-                    Expanded(
-                      child: Semantics(
-                        container: true,
-                        label:
-                            'Langkah ${i + 1}: ${_steps[i].title}, '
-                            '${_steps[i].reward}',
-                        child: ExcludeSemantics(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              art(i),
-                              const SizedBox(height: 8),
-                              Text(
-                                _steps[i].title,
-                                textAlign: TextAlign.center,
-                                style: titleStyle,
-                              ),
-                              const SizedBox(height: 4),
-                              reward(i),
-                            ],
-                          ),
-                        ),
+            constraints.maxWidth >= 300;
+        if (!columns) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              for (int i = 0; i < _rules.length; i++) ...<Widget>[
+                if (i > 0) const SizedBox(height: 10),
+                rule(i),
+              ],
+            ],
+          );
+        }
+        return ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                for (int i = 0; i < _rules.length; i++) ...<Widget>[
+                  if (i > 0)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: VerticalDivider(
+                        width: 1,
+                        thickness: 1,
+                        color: tones.line,
                       ),
                     ),
-                  ],
+                  Expanded(child: rule(i)),
                 ],
-              )
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  for (int i = 0; i < _steps.length; i++) ...<Widget>[
-                    if (i > 0) const SizedBox(height: 12),
-                    Semantics(
-                      container: true,
-                      label:
-                          'Langkah ${i + 1}: ${_steps[i].title}, '
-                          '${_steps[i].reward}',
-                      child: ExcludeSemantics(
-                        child: Row(
-                          children: <Widget>[
-                            art(i),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  Text(_steps[i].title, style: titleStyle),
-                                  const SizedBox(height: 4),
-                                  reward(i),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              );
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            steps,
-            const SizedBox(height: 14),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: tones.muted,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                child: Row(
-                  children: <Widget>[
-                    const Image(image: CheckInArt.coin, width: 22, height: 22),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '1 Kelopak = Rp100. Otomatis memotong belanja saat '
-                        'checkout.',
-                        style: base.copyWith(
-                          fontSize: 12,
-                          height: 16 / 12,
-                          color: tones.textMuted,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              ],
             ),
-            if (onOpenTerms != null)
-              Center(
-                child: Pressable(
-                  onTap: onOpenTerms,
-                  semanticLabel: 'Syarat dan ketentuan',
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Butir "Ketentuan" di bawah kisi 30 hari.
+const List<String> checkInTermLines = <String>[
+  'Hari dihitung WIB, klaim dibuka pukul 00.00.',
+  'Terlewat satu hari, streak dan kisi 30 hari mulai lagi dari hari 1. '
+      'Kelopak dan hadiah yang sudah didapat tidak hilang.',
+  'Kelopak masuk saldo dan memotong harga barang saat checkout '
+      '(1 Kelopak = Rp100).',
+];
+
+/// Panel "Ketentuan": butir aturan singkat dan tautan syarat lengkap.
+class CheckInTerms extends StatelessWidget {
+  /// Membuat isi panel ketentuan.
+  const CheckInTerms({super.key, this.onOpenTerms});
+
+  /// Membuka syarat dan ketentuan lengkap. `null` menyembunyikan tautan.
+  final VoidCallback? onOpenTerms;
+
+  @override
+  Widget build(BuildContext context) {
+    final CheckInTones tones = CheckInTones.of(context);
+    final TextStyle base =
+        Theme.of(context).textTheme.bodyMedium ?? const TextStyle();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        for (final String line in checkInTermLines)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.only(top: 7),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: tones.textMuted,
+                      shape: BoxShape.circle,
                     ),
-                    child: Text(
-                      'Syarat dan ketentuan',
-                      style: base.copyWith(
-                        fontSize: 13,
-                        height: 18 / 13,
-                        fontWeight: FontWeight.w600,
-                        color: tones.brand,
-                      ),
+                    child: const SizedBox.square(dimension: 5),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    line,
+                    style: base.copyWith(
+                      fontSize: 13,
+                      height: 19 / 13,
+                      color: tones.text,
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+        if (onOpenTerms != null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Pressable(
+              onTap: onOpenTerms,
+              semanticLabel: 'Syarat dan ketentuan',
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'Syarat dan ketentuan lengkap',
+                  style: base.copyWith(
+                    fontSize: 13,
+                    height: 18 / 13,
+                    fontWeight: FontWeight.w600,
+                    color: tones.brand,
+                  ),
+                ),
               ),
-          ],
-        );
-      },
+            ),
+          ),
+      ],
     );
   }
 }

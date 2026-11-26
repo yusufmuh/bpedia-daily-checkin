@@ -9,16 +9,14 @@ import '../check_in_view.dart';
 import '../kit/kit.dart';
 import '../widgets/check_in_how_to.dart';
 import '../widgets/check_in_month_grid.dart';
-import '../widgets/check_in_month_progress.dart';
-import '../widgets/check_in_reward_card.dart';
 import '../widgets/check_in_tones.dart';
-import '../widgets/check_in_week_strip.dart';
 import '../widgets/lively_pose.dart';
 
 /// Halaman game Check-in Harian.
 ///
-/// Hero pesta dengan Bipy bergerak, strip "Minggu ini", kisi 30 hari menuju
-/// produk gratis, cara main, dan satu tombol permen yang menempel di bawah.
+/// Mengikuti rancangan desainer owner: hero pesta dengan Bipy bergerak,
+/// kartu tiga aturan, kisi 30 hari di lipatan pertama, ketentuan, dan satu
+/// tombol permen yang menempel di bawah.
 /// Halaman hanya mengenal [controller]: keadaan dibaca dari
 /// `controller.state`, semua aksi (klaim, masuk, buka produk) lewat metodenya.
 class CheckInPage extends StatefulWidget {
@@ -253,6 +251,16 @@ class _CheckInPageState extends State<CheckInPage> {
           _controller.openShop();
         }
 
+        void wheel() {
+          close();
+          _controller.openWheel();
+        }
+
+        final ({String label, VoidCallback action}) follow =
+            _controller.wheelReady
+            ? (label: 'Lanjut putar Roda Sabtu', action: wheel)
+            : (label: 'Belanja sekarang', action: shop);
+
         if (award.productEntitled) {
           return ResultSheet(
             ribbon: 'Selamat!',
@@ -292,25 +300,23 @@ class _CheckInPageState extends State<CheckInPage> {
             caption: product?.name ?? 'Produk gratis pilihan Bpedia',
             message:
                 'Hadiah masuk ke keranjang dan dikirim bersama pesanan '
-                'berikutnya. +${award.totalKelopak} Kelopak hari ini juga '
-                'sudah masuk ke saldo.',
+                'berikutnya. ${balanceSentence(result.balance)}',
             primaryLabel: 'Lihat keranjang',
             onPrimary: () {
               close();
               _controller.openCart();
             },
-            secondaryLabel: 'Belanja sekarang',
-            onSecondary: shop,
+            secondaryLabel: follow.label,
+            onSecondary: follow.action,
           );
         }
         final bool bonus = award.bonusKelopak > 0;
-        final int toBonus =
-            CheckInRules.bonusEvery - award.streak % CheckInRules.bonusEvery;
         return ResultSheet(
-          ribbon: bonus ? 'Bonus!' : 'Berhasil!',
+          ribbon: bonus ? 'Bonus!' : null,
           title: bonus
-              ? 'Streak ${award.streak} hari'
-              : 'Check-in hari ke-${award.streak}',
+              ? 'Bonus 7 hari beruntun!'
+              : 'Check-in hari ke-${award.streak} berhasil!',
+          pill: 'Streak ${award.streak} hari',
           art: Image(image: bonus ? CheckInArt.giftOpen : CheckInArt.coin),
           companion: LivelyPose(
             image: bonus ? CheckInArt.poseRose : CheckInArt.poseStar,
@@ -320,16 +326,15 @@ class _CheckInPageState extends State<CheckInPage> {
           amount: award.totalKelopak,
           amountSuffix: ' Kelopak',
           message: bonus
-              ? 'Termasuk bonus +${award.bonusKelopak} Kelopak untuk 7 hari '
-                    'beruntun. Otomatis memotong belanja saat checkout.'
-              : 'Masuk ke saldo dan otomatis memotong belanja saat checkout. '
-                    '$toBonus hari lagi menuju bonus +3 Kelopak.',
-          note: '1 Kelopak = Rp100',
+              ? 'Termasuk bonus +${award.bonusKelopak} Kelopak. '
+                    '${balanceSentence(result.balance)}'
+              : balanceSentence(result.balance),
+          note: nextBonusNote(award.streak),
           primaryLabel: 'Mantap',
           primaryVariant: CandyVariant.gold,
           onPrimary: close,
-          secondaryLabel: 'Belanja sekarang',
-          onSecondary: shop,
+          secondaryLabel: follow.label,
+          onSecondary: follow.action,
         );
       },
     );
@@ -367,7 +372,7 @@ class _CheckInPageState extends State<CheckInPage> {
         ? '+${state.todayKelopak} Kelopak dan 1 produk gratis'
         : state.todayIsBonus
         ? '+${state.todayKelopak} Kelopak, termasuk bonus +3'
-        : '+${state.todayKelopak} Kelopak';
+        : '+${state.todayKelopak} Kelopak hari ini';
     return CandyButton(
       key: CheckInPage.primaryButtonKey,
       label: 'Check-in sekarang',
@@ -391,6 +396,15 @@ class _CheckInPageState extends State<CheckInPage> {
     // koin pertama tiba.
     final int balance = _heldBalance ?? state.balance;
 
+    final String streakLine = streakMessage(state);
+    final int split = streakLine.indexOf(' · ');
+    final TextStyle subStyle = body.copyWith(
+      fontSize: 14,
+      height: 20 / 14,
+      fontWeight: FontWeight.w500,
+      color: Colors.white,
+    );
+
     final Widget hero = Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: <Widget>[
@@ -406,7 +420,7 @@ class _CheckInPageState extends State<CheckInPage> {
                 child: MediaQuery.withClampedTextScaling(
                   maxScaleFactor: 1.6,
                   child: Text(
-                    'Klaim Kelopak',
+                    'Check-in Harian',
                     style: body.copyWith(
                       fontSize: 26,
                       height: 32 / 26,
@@ -428,43 +442,36 @@ class _CheckInPageState extends State<CheckInPage> {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                'Check-in tiap hari, 7 hari beruntun dapat bonus +3.',
-                style: body.copyWith(
-                  fontSize: 13,
-                  height: 18 / 13,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
+              Text.rich(
+                split < 0
+                    ? TextSpan(text: streakLine)
+                    : TextSpan(
+                        children: <InlineSpan>[
+                          TextSpan(
+                            text: streakLine.substring(0, split),
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          TextSpan(text: streakLine.substring(split)),
+                        ],
+                      ),
+                style: subStyle,
+              ),
+              const SizedBox(height: 10),
+              if (state.signedIn)
+                BalanceChip(
+                  key: _balanceKey,
+                  value: balance,
+                  coin: CheckInArt.coin,
+                  suffix: ' Kelopak',
+                )
+              else
+                GlassChip(
+                  key: _balanceKey,
+                  strong: true,
+                  label: 'Masuk untuk kumpulkan Kelopak',
+                  leading: const Icon(Icons.login_rounded),
+                  onTap: _openLogin,
                 ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: <Widget>[
-                  if (state.signedIn)
-                    BalanceChip(
-                      key: _balanceKey,
-                      value: balance,
-                      coin: CheckInArt.coin,
-                      suffix: ' Kelopak',
-                    )
-                  else
-                    GlassChip(
-                      key: _balanceKey,
-                      strong: true,
-                      label: 'Masuk untuk kumpulkan Kelopak',
-                      leading: const Icon(Icons.login_rounded),
-                      onTap: _openLogin,
-                    ),
-                  if (state.signedIn && state.streak > 0)
-                    GlassChip(
-                      label: 'Streak ${state.streak} hari',
-                      leading: const Icon(Icons.local_fire_department_rounded),
-                    ),
-                ],
-              ),
             ],
           ),
         ),
@@ -476,48 +483,61 @@ class _CheckInPageState extends State<CheckInPage> {
           child: SpriteAnimation(
             spec: CheckInSprites.idle,
             controller: _bipy,
-            height: 148,
+            height: 140,
           ),
         ),
       ],
     );
 
-    final Widget weekPanel = FestivePanel(
-      title: 'Minggu ini',
-      trailing: _GoldPill(label: '7 hari = 10 Kelopak', tones: tones),
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+    const Widget rulesCard = FestivePanel(
+      padding: EdgeInsets.fromLTRB(12, 14, 12, 14),
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      child: CheckInHowTo(),
+    );
+
+    final int currentDay = state.claimedToday
+        ? state.monthDay
+        : state.monthDay + 1;
+    final Widget monthPanel = FestivePanel(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          CheckInWeekStrip(
-            filled: state.weekFilled,
+          CheckInCycleHeader(
+            day: currentDay,
+            product: product,
+            onOpenProduct: product == null
+                ? null
+                : () => _controller.openProduct(product.code),
+          ),
+          const SizedBox(height: 12),
+          CheckInMonthGrid(
+            day: state.monthDay,
             claimedToday: state.claimedToday,
+            cycleStart: state.monthCycleStart,
+            rewardImage: product?.image,
             todayAnchorKey: _todayKey,
+            stampLatest: _claiming,
           ),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.only(top: 1),
-                child: Icon(
-                  state.signedIn
-                      ? Icons.local_fire_department_rounded
-                      : Icons.lock_outline_rounded,
-                  size: 16,
-                  color: tones.brand,
-                ),
+              Icon(
+                Icons.local_shipping_outlined,
+                size: 18,
+                color: tones.success,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  streakMessage(state),
+                  'Produk dikirim bersama pesanan belanjamu, tanpa ongkir '
+                  'tambahan.',
                   style: body.copyWith(
                     fontSize: 12,
-                    height: 18 / 12,
-                    fontWeight: FontWeight.w500,
+                    height: 17 / 12,
                     color: tones.textMuted,
                   ),
                 ),
@@ -528,37 +548,11 @@ class _CheckInPageState extends State<CheckInPage> {
       ),
     );
 
-    final Widget monthPanel = FestivePanel(
-      title: 'Menuju produk gratis',
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          CheckInMonthProgress(day: state.monthDay),
-          const SizedBox(height: 16),
-          CheckInMonthGrid(
-            day: state.monthDay,
-            claimedToday: state.claimedToday,
-            cycleStart: state.monthCycleStart,
-          ),
-          const SizedBox(height: 14),
-          CheckInRewardCard(
-            product: product,
-            onOpen: product == null
-                ? null
-                : () => _controller.openProduct(product.code),
-          ),
-        ],
-      ),
-    );
-
-    final Widget howPanel = FestivePanel(
-      title: 'Cara main',
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 6),
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: CheckInHowTo(onOpenTerms: _controller.openTerms),
+    final Widget termsPanel = FestivePanel(
+      title: 'Ketentuan',
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: CheckInTerms(onOpenTerms: _controller.openTerms),
     );
 
     return ConfettiBurst(
@@ -591,52 +585,11 @@ class _CheckInPageState extends State<CheckInPage> {
           ],
           hero: hero,
           slivers: <Widget>[
-            SliverToBoxAdapter(child: weekPanel),
+            const SliverToBoxAdapter(child: rulesCard),
             SliverToBoxAdapter(child: monthPanel),
-            SliverToBoxAdapter(child: howPanel),
+            SliverToBoxAdapter(child: termsPanel),
           ],
           bottomBar: _bottomBar(state),
-        ),
-      ),
-    );
-  }
-}
-
-class _GoldPill extends StatelessWidget {
-  const _GoldPill({required this.label, required this.tones});
-
-  final String label;
-  final CheckInTones tones;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextStyle base =
-        Theme.of(context).textTheme.labelSmall ?? const TextStyle();
-    return DecoratedBox(
-      decoration: ShapeDecoration(
-        color: tones.goldTint,
-        shape: StadiumBorder(side: BorderSide(color: tones.goldLine)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(6, 3, 10, 3),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Image(image: CheckInArt.coin, width: 16, height: 16),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                label,
-                style: base.copyWith(
-                  fontSize: 11,
-                  height: 14 / 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0,
-                  color: tones.onGoldTint,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -694,7 +647,7 @@ const List<_Float> _floats = <_Float>[
   ),
   _Float(
     CheckInArt.stickerSparkle,
-    Alignment(0.3, -0.62),
+    Alignment(0.2, -0.88),
     18,
     parallax: 0.15,
     phase: 0.7,
@@ -722,7 +675,9 @@ class _HeroBackdrop extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
-        const FestiveHero(),
+        // Kilau acak bawaan dimatikan karena bisa jatuh di atas judul;
+        // stiker kilau sendiri ditempatkan jauh dari teks.
+        const FestiveHero(sparkles: false),
         for (final _Float item in _floats)
           Align(
             alignment: item.alignment,

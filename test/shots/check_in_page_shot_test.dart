@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/check_in_harness.dart';
 import '../support/shot.dart';
 
-const Size _long = Size(390, 1900);
+const Size _long = Size(390, 1240);
 
 void main() {
   for (final Brightness brightness in Brightness.values) {

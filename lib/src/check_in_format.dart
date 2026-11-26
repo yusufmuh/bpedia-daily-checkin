@@ -1,3 +1,4 @@
+import 'check_in_engine.dart';
 import 'check_in_view.dart';
 
 /// `10000` menjadi `Rp10.000`.
@@ -31,7 +32,25 @@ String countdownSpoken(Duration left) {
   return '$hours jam $rest menit';
 }
 
-/// Kalimat streak di bawah strip 7 hari.
+/// Saldo setelah klaim beserta nilai rupiahnya (1 Kelopak = Rp100):
+/// `Saldo kamu sekarang 129 Kelopak, senilai Rp12.900.`
+String balanceSentence(int balance) =>
+    'Saldo kamu sekarang $balance Kelopak, senilai '
+    '${formatRupiah(balance * kelopakRupiah)}.';
+
+/// Nilai rupiah satu Kelopak.
+const int kelopakRupiah = 100;
+
+/// Sisa hari menuju bonus +3 berikutnya setelah klaim yang membawa streak ke
+/// [streak]: `2 hari lagi bonus +3 Kelopak`.
+String nextBonusNote(int streak) {
+  final int rest = streak <= 0
+      ? CheckInRules.bonusEvery
+      : CheckInRules.bonusEvery - streak % CheckInRules.bonusEvery;
+  return '$rest hari lagi bonus +${CheckInRules.bonusKelopak} Kelopak';
+}
+
+/// Kalimat streak di bawah judul hero.
 String streakMessage(CheckInViewState state) {
   if (!state.signedIn) {
     return 'Masuk dulu, lalu klaim Kelopak pertamamu, Babes.';
@@ -47,7 +66,7 @@ String streakMessage(CheckInViewState state) {
     if (state.todayIsBonus) {
       return '$streak · hari ini bonus +3 Kelopak menunggumu';
     }
-    return '$streak · jangan sampai terlewat ya, Babes';
+    return '$streak · jangan terlewat ya, Babes';
   }
   if (state.todayIsBonus) return '$streak · bonus +3 Kelopak sudah masuk';
   return '$streak · ${state.daysToBonus} hari lagi menuju bonus +3 Kelopak';
